@@ -43,7 +43,7 @@
 <link href="{{ url('assets/intl-tel-input17.0.3/intlTelInput.min.css')}}" rel="stylesheet"/>
 <link href="{{ url('assets/plugins/select2/css/select2.min.css')}}" rel="stylesheet"/>
 
-  <title>AKTISADA</title>
+  <title>C-STOCK</title>
 </head>
 <style>
 /*pre-loader style*/
@@ -64,7 +64,7 @@
               <i class="bi bi-list"></i>
             </div> 
 		  
-			<h4>AKTISADA</h4>
+			<h4>C-STOCK</h4>
             <!--<form class="searchbar">
                 <div class="position-absolute top-50 translate-middle-y search-icon ms-3"><i class="bi bi-search"></i></div>
                 <input class="form-control" type="text" placeholder="Type here to search">
