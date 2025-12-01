@@ -1,0 +1,463 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Facades\FileUpload;
+
+use App\Models\SlideImage;
+use App\Models\User;
+use App\Models\Brand;
+use App\Models\Category;
+use App\Models\ItemType;
+use App\Models\Material;
+use App\Models\Product;
+
+use Carbon\Carbon;
+use Hash;
+use Validator;
+use DB;
+use Log;
+
+
+class ProductController extends Controller
+{
+    //use CrmApiService;
+	
+	/**
+    * To add new products .
+    * Method : POST
+    * @return \Illuminate\Http\Response
+    */
+    public function addProduct(Request $request)
+    {
+        $rule=[ 
+			  'product_title'=>'required',
+			  'user_id' =>'required',
+			  'category_id'=>'required',
+			  'brand_id'=>'required',
+			  'type_id' =>'required',
+			  'material_id' =>'required',
+			  'item_size_id' =>'required',
+			  'quantity' =>'required',
+			  'image_file' =>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+            try
+            {
+				$path='products/';
+				$fname="";
+				if($request->file('image_file'))
+					{
+						$image = $request->file('image_file');
+						$name = rand(10, 100). date_timestamp_get(date_create()). '.' . $image->getClientOriginalExtension();
+						FileUpload::uploadFile($image, $path,$name,'local');
+						$fname=$path.$name;
+					}
+									
+				$data=[
+				  'product_title'=>$request->product_title,
+				  'user_id' =>$request->user_id,
+				  'category_id'=>$request->category_id,
+				  'brand_id'=>$request->brand_id,
+				  'type_id' =>$request->type_id,
+				  'material_id' =>$request->material_id,
+				  'item_size_id' =>$request->item_size_id,
+				  'quantity' =>$request->quantity,
+				  'description' =>$request->description,
+				  'image_file' =>$fname,
+				  'status'=>1
+				];
+				
+				$result=Product::create($data);
+				if($result)
+				{
+                    return response()->json(['message' => 'Product Successfully added','data'=>$result,'status' => true]); 
+                }else
+                    return response()->json(['message' => 'Something wrong, Try again.', 'status' => false]); 
+			
+            }catch(\Exception $e){
+                return response()->json(['message' => $e->getMessage(), 'status' => false]);
+            }
+        } else{
+            return response()->json(['message' => $validator->messages(), 'status' => false]);
+        }
+    }
+	
+	/**
+    * Display a listing of the products.
+    * Method: POST
+    * @return \Illuminate\Http\Response
+    */	
+	
+	
+    public function getProducts(Request $request)
+    {
+		
+		$rule=[ 
+			  'category_id'=>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+			try
+			{
+					$query=Product::with('user')->select('products.*','category.pk_category_id','category.category','brands.pk_brand_id','brands.brand_name',
+					'item_types.pk_type_id','item_types.type_name','materials.pk_material_id','materials.material_name','item_sizes.pk_size_id','item_sizes.item_size')
+					->leftJoin('category','products.category_id','=','category.pk_category_id')
+					->leftJoin('brands','products.brand_id','=','brands.pk_brand_id')
+					->leftJoin('item_types','products.type_id','=','item_types.pk_type_id')
+					->leftJoin('materials','products.material_id','=','materials.pk_material_id')
+					->leftJoin('item_sizes','products.item_size_id','=','item_sizes.pk_size_id')
+					->where('products.category_id',$request->category_id);
+					
+					if($request->has('brand_id') && $request->brand_id!='')
+					{
+						$query->where('products.brand_id',$request->brand_id);
+					}
+					
+					if($request->has('type_id') && $request->type_id!='')
+					{
+						$query->where('products.type_id',$request->type_id);
+					}
+					
+					if($request->has('material_id') && $request->material_id!='')
+					{
+						$query->where('products.material_id',$request->material_id);
+					}
+					
+					if($request->has('item_size_id') && $request->item_size_id!='')
+					{
+						$query->where('products.item_size_id',$request->item_size_id);
+					}
+					
+					if($request->has('user_id') && $request->user_id!='')
+					{
+						$query->where('products.user_id',$request->user_id);
+					}
+					
+					if($request->has('search') && $request->search!='')
+					{
+						$query->where('products.product_title','like','%'.$request->search.'%');
+					}
+				
+				$products=$query->orderBy('products.pk_product_id','ASC')->simplePaginate(15)
+				->through(function ($q) 
+				{ 
+					$q['image_path']=url('uploads').'/'.$q->image_file;
+					return $q;
+				 });
+
+				
+				if(!$products->isEmpty())
+				{
+					return response()->json(['message'=> 'products Successfully listed','data'=>$products,'status' => true]);
+				}else{
+					return response()->json(['message'=> 'Products Not Found', 'status' => false]); 
+				}  
+			}catch(\Exception $e){
+				return response()->json(['message'=>$e->getMessage(), 'status' => false]);
+			}
+		}
+		else
+		{
+			return response()->json(['message'=>$validator->messages()->first(), 'status' => false]);
+		}
+	}
+
+
+/**
+    * to remove the specified product.
+    * Method: POST
+    * @return \Illuminate\Http\Response
+    */	
+
+
+    public function deleteProduct(Request $request)
+    {
+		
+		$rule=[ 
+			  'product_id'=>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+			try
+			{
+				$prod = Product::where('pk_product_id',$request->product_id)->first();
+				if($prod)
+				{
+					FileUpload::deleteFile($prod->image_file,'local');
+					$prod->delete();
+					return response()->json(['message'=> 'Product successfully removed','status' => true]);
+				}
+				else
+				{
+					return response()->json(['message'=> 'Product not found.!','status' => false]);
+				}
+			}catch(\Exception $e){
+				return response()->json(['message'=>$e->getMessage(), 'status' => false]);
+			}
+		}
+		else
+		{
+			return response()->json(['message'=>$validator->messages()->first(), 'status' => false]);	
+		}
+        
+    }
+
+
+/**
+    * to remove the specified product.
+    * Method: POST
+    * @return \Illuminate\Http\Response
+    */	
+
+
+    public function editProduct(Request $request)
+    {
+		
+		$rule=[ 
+			  'product_id'=>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+			try
+			{
+				$prod = Product::where('pk_product_id',$request->product_id)->get()->map(function($q)
+				{
+					$q['image_path']=url('uploads').'/'.$q->image_file;
+					return $q;
+				});
+				
+				if(!$prod->isEmpty())
+				{
+					return response()->json(['message'=> 'products Successfully listed','data'=>$prod,'status' => true]);
+				}
+				else
+				{
+					return response()->json(['message'=> 'Product not found.!','status' => false]);
+				}
+			}catch(\Exception $e){
+				return response()->json(['message'=>$e->getMessage(), 'status' => false]);
+			}
+		}
+		else
+		{
+			return response()->json(['message'=>$validator->messages()->first(), 'status' => false]);	
+		}
+        
+    }
+
+	/**
+    * To update product.
+    * Method: POST
+    * @return \Illuminate\Http\Response
+    */	
+	
+
+public function updateProduct(Request $request)
+    {
+        $rule=[ 
+			  'product_id'=>'required',
+			  'product_title'=>'required',
+			  'category_id'=>'required',
+			  'brand_id'=>'required',
+			  'type_id' =>'required',
+			  'material_id' =>'required',
+			  'item_size_id' =>'required',
+			  'quantity' =>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+            try
+            {
+				
+				$prod=Product::where('pk_product_id',$request->product_id)->first();
+								
+				$path='products/';
+				$fname=$prod->image_file;
+				if($request->hasFile('image_file') and $request->file('image_file'))
+					{
+						$image = $request->file('image_file');
+						$name = rand(10, 100). date_timestamp_get(date_create()). '.' . $image->getClientOriginalExtension();
+						FileUpload::uploadFile($image, $path,$name,'local');
+						FileUpload::deleteFile($prod->image_file,'local');
+						$fname=$path.$name;
+					}
+
+				  $prod->product_title=$request->product_title;
+				  $prod->user_id =$request->user_id;
+				  $prod->category_id=$request->category_id;
+				  $prod->brand_id=$request->brand_id;
+				  $prod->type_id =$request->type_id;
+				  $prod->material_id =$request->material_id;
+				  $prod->item_size_id =$request->item_size_id;
+				  $prod->quantity =$request->quantity;
+				  $prod->image_file =$fname;
+				  $prod->description =$request->description;
+				  $result=$prod->save();
+				  if($result)
+				  {
+                  		return response()->json(['message' => 'Product Successfully updated','data'=>$prod,'status' => true]); 
+				  }
+				  else
+				  {
+						return response()->json(['message' => 'Something wrong, try again','data'=>[],'status' => false]); 
+				  }
+               
+			
+            }catch(\Exception $e){
+                return response()->json(['message' => $e->getMessage(), 'status' => false]);
+            }
+        } else{
+            return response()->json(['message' => $validator->messages(), 'status' => false]);
+        }
+    }
+
+
+
+/**
+    * to remove the specified product.
+    * Method: POST
+    * @return \Illuminate\Http\Response
+    */	
+
+
+    public function getProductDetails(Request $request)
+    {
+		
+		$rule=[ 
+			  'product_id'=>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+			try
+			{
+				$prod = Product::with('user')->where('pk_product_id',$request->product_id)->get()->map(function($q)
+				{
+					$q['image_path']=url('uploads').'/'.$q->image_file;
+					return $q;
+				});
+				
+				
+				if(!$prod->isEmpty())
+				{
+					return response()->json(['message'=> 'Product Successfully listed','data'=>$prod,'status' => true]);
+				}
+				else
+				{
+					return response()->json(['message'=> 'Product not found.!','status' => false]);
+				}
+			}catch(\Exception $e){
+				return response()->json(['message'=>$e->getMessage(), 'status' => false]);
+			}
+		}
+		else
+		{
+			return response()->json(['message'=>$validator->messages()->first(), 'status' => false]);	
+		}
+        
+    }
+
+
+	/**
+    * Display a listing of the products.
+    * Method: POST
+    * @return \Illuminate\Http\Response
+    */	
+	
+	
+    public function getMyProducts(Request $request)
+    {
+		
+		$rule=[ 
+			  'user_id'=>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+			try
+			{
+				$query=Product::select('products.*','category.pk_category_id','category.category','brands.pk_brand_id','brands.brand_name',
+					'item_types.pk_type_id','item_types.type_name','materials.pk_material_id','materials.material_name','item_sizes.pk_size_id','item_sizes.item_size',
+					'users.pk_user_id','users.shop_name')
+					->leftJoin('category','products.category_id','=','category.pk_category_id')
+					->leftJoin('brands','products.brand_id','=','brands.pk_brand_id')
+					->leftJoin('item_types','products.type_id','=','item_types.pk_type_id')
+					->leftJoin('materials','products.material_id','=','materials.pk_material_id')
+					->leftJoin('item_sizes','products.item_size_id','=','item_sizes.pk_size_id')
+					->leftJoin('users','products.user_id','=','users.pk_user_id')
+					->where('products.user_id',$request->user_id);
+					
+					if($request->has('brand_id') && $request->brand_id!='')
+					{
+						$query->where('products.brand_id',$request->brand_id);
+					}
+					
+					if($request->has('type_id') && $request->type_id!='')
+					{
+						$query->where('products.type_id',$request->type_id);
+					}
+					
+					if($request->has('material_id') && $request->material_id!='')
+					{
+						$query->where('products.material_id',$request->material_id);
+					}
+					
+					if($request->has('item_size_id') && $request->item_size_id!='')
+					{
+						$query->where('products.item_size_id',$request->item_size_id);
+					}
+					
+					if($request->has('user_id') && $request->user_id!='')
+					{
+						$query->where('products.user_id',$request->user_id);
+					}
+					
+					if($request->has('search') && $request->search!='')
+					{
+						$query->where('products.product_title','like','%'.$request->search.'%');
+					}
+				
+				$products=$query->orderBy('products.pk_product_id','ASC')->simplePaginate(15)
+				->through(function ($q) 
+				{ 
+					$q['image_path']=url('uploads').'/'.$q->image_file;
+					return $q;
+				 });
+
+				
+				if(!$products->isEmpty())
+				{
+					return response()->json(['message'=> 'products Successfully listed','data'=>$products,'status' => true]);
+				}else{
+					return response()->json(['message'=> 'Products Not Found', 'status' => false]); 
+				}  
+			}catch(\Exception $e){
+				return response()->json(['message'=>$e->getMessage(), 'status' => false]);
+			}
+		}
+		else
+		{
+			return response()->json(['message'=>$validator->messages()->first(), 'status' => false]);
+		}
+	}
+
+
+
+
+}
