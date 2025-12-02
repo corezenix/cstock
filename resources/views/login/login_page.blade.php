@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title> Aktisada </title>
+    <title> C-STOCK </title>
     <!-- MOBILE -->
     <meta name='HandheldFriendly' content='true' />
     <meta name='format-detection' content='telephone=no' />
@@ -62,7 +62,7 @@
 					
 						<div class="pb-5 pt-lg-0 pt-5 mx-auto">
 			
-							<h3 class="sign-title"><span style="color:#ee3448;">AKTI</span>SADA</h3>
+							<h3 class="sign-title"><span style="color:#ee3448;">C</span> - STOCK</h3>
 							<p class="pt-10" style="font-size:16px;" > Log in to your account</p> 
 						</div>
 						
