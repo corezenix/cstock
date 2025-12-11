@@ -113,7 +113,7 @@ class LoginController extends Controller
 
 				if ($user->status == User::ACTIVE)
 				{
-					
+							
 					if ($user->role_id ==User::ADMIN) 
 					{
 						return redirect('admin/dashboard');
@@ -121,6 +121,10 @@ class LoginController extends Controller
 					else if($user->role_id == User::USERS)
 					{
 						 return redirect('users/dashboard');
+					}
+					else if($user->role_id == User::SUBUSER)
+					{
+						 return redirect('admin/products');
 					}
 					
 				}

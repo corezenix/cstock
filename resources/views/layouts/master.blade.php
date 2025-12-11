@@ -118,14 +118,12 @@
       </header>
        <!--end top header-->
 	   
-	@if(Auth::user()->int_role_id==0)
-		@include('layouts.admin_sidebar');
-	@elseif(Auth::user()->int_role_id==1)
+	@if(Auth::user()->role_id==2)
 		@include('layouts.user_sidebar');
-	@elseif(Auth::user()->int_role_id==2)
-       @include('layouts.user_sidebar');
+	@elseif(Auth::user()->role_id==3)
+       @include('layouts.subuser_sidebar');
    @else	
-       @include('layouts.shops_sidebar');
+       @include('layouts.admin_sidebar');
    
 	@endif
        <!--start content-->
