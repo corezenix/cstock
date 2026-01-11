@@ -457,6 +457,55 @@ public function updateProduct(Request $request)
 		}
 	}
 
+// update stocks
+
+public function updateStock(Request $request)
+    {
+        $rule=[ 
+			  'product_id'=>'required',
+			  'operation' =>'required',
+			  'quantity' =>'required',
+        ];
+        
+        $validator = Validator::make($request->all(),$rule);
+        if ($validator->passes()) 
+        {
+            try
+            {
+				$prod=Product::where('pk_product_id',$request->product_id)->first();
+				$result=0;
+					if(!empty($prod))
+					{
+						if($request->operation=="+")
+						{
+							$prod->quantity=$prod->quantity+$request->quantity;
+							$result=$prod->save();
+						}
+						else
+						{
+							$prod->quantity =$prod->quantity-$request->quantity;
+							$result=$prod->save();
+						}
+					  
+					}
+				  if($result)
+				  {
+                  		return response()->json(['message' => 'Product Successfully updated','data'=>$prod,'status' => true]); 
+				  }
+				  else
+				  {
+						return response()->json(['message' => 'Product not found. try again','data'=>$prod,'status' => false]); 
+				  }
+
+            }catch(\Exception $e){
+                return response()->json(['message' => $e->getMessage(), 'status' => false]);
+            }
+        } else{
+            return response()->json(['message' => $validator->messages(), 'status' => false]);
+        }
+    }
+
+
 
 
 

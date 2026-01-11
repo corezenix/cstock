@@ -28,7 +28,7 @@ use DB;
 use Log;
 
 
-class AktisadaApiController extends Controller
+class MainApiController extends Controller
 {
     //use CrmApiService;
 	

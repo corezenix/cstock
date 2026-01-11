@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\Api\AktisadaApiController;
+use App\Http\Controllers\Api\MainApiController;
 use App\Http\Controllers\Api\ProductController;
 
 
@@ -13,11 +13,11 @@ use App\Http\Controllers\Api\ProductController;
 */
 //api-prefix = 'api/v1'
 
-Route::controller(AktisadaApiController::class)->group(function() {
+Route::controller(MainApiController::class)->group(function() {
 	Route::post('login', 'login')->name('login');
 });
 
-Route::controller(AktisadaApiController::class)->group(function()
+Route::controller(MainApiController::class)->group(function()
 	{
 		Route::post('check-user-exist', 'checkUserExist')->name('check-user-exist');
 		Route::post('check-app-version', 'checkAppVersion')->name('check-app-version');
@@ -26,7 +26,7 @@ Route::controller(AktisadaApiController::class)->group(function()
 
 Route::middleware('auth:sanctum')->group( function () {
 
-	Route::controller(AktisadaApiController::class)->group(function()
+	Route::controller(MainApiController::class)->group(function()
 	{
 		Route::get('get-slides', 'getslides')->name('get-slides');
 		Route::get('get-categories', 'getCategories')->name('get-categories');
@@ -47,7 +47,8 @@ Route::middleware('auth:sanctum')->group( function () {
 		Route::post('update-product', 'updateProduct')->name('update-product');
 		Route::post('product-details', 'getProductDetails')->name('product-details');
 		Route::post('get-my-products', 'getMyProducts')->name('get-my-products');
-		
+		Route::post('update-stock', 'updateStock')->name('update-stock');
+	
 	});
 
 
